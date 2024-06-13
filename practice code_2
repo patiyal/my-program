@@ -1,0 +1,19 @@
+#find repeating part
+def find_repeating_decimal(numerator, denominator):
+    remainder = numerator % denominator
+    seen_remainders = {}
+    repeating_part = ""
+
+    while remainder != 0 and remainder not in seen_remainders:
+        seen_remainders[remainder] = len(repeating_part)
+        quotient = (remainder * 10) // denominator
+        repeating_part += str(quotient)
+        remainder = (remainder * 10) % denominator
+
+    if remainder == 0:
+        return ""
+    else:
+        return repeating_part[seen_remainders[remainder]:]
+
+repeating_part = find_repeating_decimal(8, 7)
+print("Repeating part:", repeating_part)
