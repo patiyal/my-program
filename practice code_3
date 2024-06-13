@@ -1,0 +1,31 @@
+import math
+
+def calculate_side_length(ab_length, angle_a, angle_b):
+    # Calculate angle C
+    angle_c = 180 - (angle_a + angle_b)
+    
+    # Convert angles to radians
+    angle_a_rad = math.radians(angle_a)
+    angle_b_rad = math.radians(angle_b)
+    angle_c_rad = math.radians(angle_c)
+    
+    # Calculate side AC using the law of sines
+    ac_length = (ab_length * math.sin(angle_b_rad)) / math.sin(angle_c_rad)
+    
+    # Calculate side BC using the law of sines
+    bc_length = (ab_length * math.sin(angle_a_rad)) / math.sin(angle_c_rad)
+    
+    return ac_length, bc_length
+
+def main():
+    ab_length = float(input("Enter the length of side AB (in cm): "))
+    angle_a = float(input("Enter the angle at A (in degrees): "))
+    angle_b = float(input("Enter the angle at B (in degrees): "))
+    
+    ac_length, bc_length = calculate_side_length(ab_length, angle_a, angle_b)
+    
+    print(f"Length of side AC: {ac_length:.2f} cm")
+    print(f"Length of side BC: {bc_length:.2f} cm")
+
+if __name__ == "__main__":
+    main()
