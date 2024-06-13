@@ -1,0 +1,63 @@
+import random
+import time
+from datetime import datetime
+import json
+
+# Load existing scores data from file if it exists
+try:
+    with open("scores.json", "r") as file:
+        scores = json.load(file)
+except FileNotFoundError:
+    scores = {}
+
+start_time = time.time()  # Record the start time
+current_date = datetime.now().strftime("%Y-%m-%d")
+max_three = 1
+
+for all_adition in range(1, 3):   
+    choices = ['2', '3']
+    two_or_three = random.choice(choices)
+    if two_or_three == '3' and max_three <= 3:
+        max_three = max_three + 1
+        x_first_value = random.randint(1, 10)
+        y_second_value = random.randint(1, 10)
+        z_third_value = random.randint(1, 10)
+        print(x_first_value, "+", y_second_value, "+", z_third_value,"=")
+        put_answer = int(input('your answer ='))
+        orignal_answer = x_first_value + y_second_value + z_third_value
+        while True:
+            if put_answer == orignal_answer:
+                print(x_first_value, "+", y_second_value, "+", z_third_value,"=", orignal_answer)
+                break
+            else:
+                put_answer = int(input('again answer ='))
+    else:
+        x_first_value = random.randint(1, 10)
+        y_second_value = random.randint(1, 10)
+        print(x_first_value, "+", y_second_value,"=")
+        put_answer = int(input('your answer ='))
+        orignal_answer = x_first_value + y_second_value
+        while True:
+            if put_answer == orignal_answer:
+                print(x_first_value, "+", y_second_value, "=", orignal_answer)
+                break
+            else:
+                put_answer = int(input('again answer ='))
+
+end_time = time.time()  # Record the end time
+time_taken = end_time - start_time
+print("Time taken:", round(time_taken, 2), "seconds")
+print("Date:", current_date)
+rounded_time_taken = round(time_taken, 2)
+scores[rounded_time_taken] = current_date
+
+# Save updated scores data to file
+with open("scores.json", "w") as file:
+    json.dump(scores, file)
+
+# Convert keys to floats for sorting
+sorted_data = sorted(scores.items(), key=lambda x: float(x[0]))
+
+print("Three smallest values (low to high):")
+for key, value in sorted_data[:3]:
+    print(f"{key}: {value}")
