@@ -1,0 +1,21 @@
+def sieve_of_eratosthenes(limit):
+    primes = [True] * (limit + 1)
+    primes[0] = primes[1] = False
+    p = 2
+    while p * p <= limit:
+        if primes[p]:
+            for i in range(p * p, limit + 1, p):
+                primes[i] = False
+        p += 1
+    return [i for i in range(2, limit + 1) if primes[i]]
+
+primes = sieve_of_eratosthenes(100000)
+
+consecutive_composites = 0
+for i in range(2, 100000):
+    if i not in primes:
+        consecutive_composites += 1
+        if consecutive_composites >= 60:
+            print(i, consecutive_composites)
+    else:
+        consecutive_composites = 0
