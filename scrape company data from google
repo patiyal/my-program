@@ -1,0 +1,243 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.action_chains import ActionChains
+from urllib.parse import urlparse
+import re
+import dns.resolver
+import random
+import validators
+import phonenumbers
+from zenrows import ZenRowsClient
+import quickemailverification
+# get website link
+def find_website(company, country):
+    # Setup Chrome options
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Ensure GUI is off
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    
+    r_n = random.randint(0, 7)
+    # Set path to chromedriver as per your configuration
+    webdriver_service = Service(ChromeDriverManager().install())
+
+    # Choose Chrome Browser
+    driver = webdriver.Chrome(service=webdriver_service, options=chrome_options)
+#     driver.get(f"https://www.google.com/search?q={company} company {country}+official+website")   #official+website
+    driver.get(f"https://www.google.com/search?q={company} company {country}+official+website{firstsearch[r_n]}{company} company {country}+official+website{secondsearch[r_n]}")
+    
+    website = None
+    results = driver.find_elements(By.XPATH, '//div[@class="yuRUbf"]/a')
+
+    if results:
+        website = results[0].get_attribute('href')
+
+    driver.quit()
+
+    return website
+
+# clean website
+
+def extract_domain(url):
+    # Parse the URL
+    parsed_url = urlparse(url)
+    
+    # Extract and return the domain
+    return parsed_url.netloc
+
+# find match company and website link
+
+def match_first_char(company_name, clean_web):
+    company_words = company_name.split()
+    web_domain = clean_web.split('.')[0]
+    match = any(word.lower() in web_domain.lower() for word in company_words)
+    first_char_match = any(word[0].lower() == web_domain[0].lower() for word in company_words)
+    return match or first_char_match or company_name[0].lower() == web_domain[0].lower()
+
+# guess email
+
+def guess_mail(clean_domain1, cn_cd_match):
+    email_start = ['info', 'contact']
+    emails = []
+
+    if cn_cd_match == True:
+        for stsemail in email_start:
+            emails.append(stsemail + '@' + clean_domain1)
+    else:
+        return False
+
+    return emails
+    
+    
+# text eamils
+
+def check_email_exists(email):
+    import quickemailverification
+    client = quickemailverification.Client('30d9b9f0b371974dd9b8fcde84039811dd7f04dcff3cbb2751fa7787ef0d') # Replace API_KEY with your API Key
+    quickemailverification = client.quickemailverification()
+    response = quickemailverification.verify(email)  # Email address which need to be verified
+    email_vali = response.body # The response is in the body attribute
+    if email_vali['result'] == 'valid':
+        return True
+    else:
+        return False
+
+# Find PhoneNo
+
+def website_code(domain):    
+    new_domain = 'https://' + domain
+    client = ZenRowsClient("20cd8c840b0f0057a1e2056d43c9edaae6c0cb3f")
+    response = client.get(new_domain)
+#     response = requests.get(new_domain, headers=headers)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    data = soup.text
+    new_data = [data]
+    links = soup.find_all('a')
+    
+    for link in links:
+        text = link.text.lower()
+        href = link.get('href')
+
+        # Look for the keywords in the text of the link
+        if 'contact' in text or 'contact us' in text:
+            # Validate the link
+            if validators.url(href):
+                new_response = client.get(href)
+                new_soup = BeautifulSoup(new_response.content, 'html.parser')
+                new_data.append(new_soup.text)
+
+    class PhoneNumberExtractor:
+        def extract(self, text):
+            phone_numbers = []
+            for match in phonenumbers.PhoneNumberMatcher(text, None):
+                phone_number = match.number
+                international_format = phonenumbers.format_number(phone_number, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+                country_code = phonenumbers.region_code_for_number(phone_number)
+                phone_numbers.append({'number': international_format, 'country_code': country_code})
+            return phone_numbers
+
+    extractor = PhoneNumberExtractor()
+    all_phone_numbers = []
+    
+    for i_data in new_data:
+        extracted_phone_numbers = extractor.extract(i_data)
+        all_phone_numbers.extend(extracted_phone_numbers)
+    
+    if not all_phone_numbers:
+        phone_number_pattern = re.compile(r'\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}')
+        phone_numbers = phone_number_pattern.findall(data)
+        
+        if phone_numbers:
+            return phone_numbers
+        else:
+            return "None"
+
+    # Convert the list of dictionaries to a set of tuples to remove duplicates
+    all_phone_numbers_set = set(tuple(phone_number.items()) for phone_number in all_phone_numbers)
+    
+    # Convert the set of tuples back to a list of dictionaries
+    all_phone_numbers_no_duplicates = [dict(phone_number) for phone_number in all_phone_numbers_set]
+
+    # Return the list with no duplicates
+    return all_phone_numbers_no_duplicates 
+#     return all_phone_numbers
+
+# return only two PhoneNo
+
+# def process_numbers(domain):
+#     results = website_code(domain)
+
+#     no1, no2, c_code1, c_code2 = '', '', '', ''
+#     if isinstance(results, list) and len(results) > 0:
+#         no1 = results[0].get('number', '')
+#         c_code1 = results[0].get('country_code', '')
+#         if len(results) > 1:
+#             no2 = results[1].get('number', '')
+#             c_code2 = results[1].get('country_code', '')
+            
+#     return no1, no2, c_code1, c_code2
+def process_numbers(domain):
+    results = website_code(domain)
+    no1, no2, c_code1, c_code2 = '', '', '', ''
+    
+    if isinstance(results, list):
+        if len(results) > 0:
+            if isinstance(results[0], dict):
+                no1 = results[0].get('number', '')
+                c_code1 = results[0].get('country_code', '')
+                
+                if len(results) > 1:
+                    no2 = results[1].get('number', '')
+                    c_code2 = results[1].get('country_code', '')
+            else:
+                no1 = results[0]
+                c_code1 = ''
+    
+    return no1, no2, c_code1, c_code2
+Company = pd.read_csv('company.csv')
+name_company = []
+country_company = []
+website_company = []
+phone_no1 = []
+phone_no2 = []
+country_code1 = []
+country_code2 = []
+email_company_1 = []
+email_company_2 = []
+for i, j in zip(Company['Company'], Company['Country']):
+    website_link = find_website(i, j)
+    name_company.append(i)
+    company_name = i.lower().replace('ltd','').replace('llc','').replace('pvt','').replace('inc','').replace('limited','')
+    clean_domain = extract_domain(website_link)
+    clean_domain1 = clean_domain.replace('www.','')
+    cn_cd_match = match_first_char(company_name, clean_domain1)
+    
+    if cn_cd_match == False:
+        country_company.append(j)
+        website_company.append('')
+        phone_no1.append('')
+        phone_no2.append('')
+        country_code1.append('')
+        country_code2.append('')
+        email_company_1.append('')
+        email_company_2.append('')
+        
+        print('Not Any')
+        continue
+    
+    guessEmails = guess_mail(clean_domain1, cn_cd_match)
+    email_lists = [email_company_1, email_company_2]
+    valid_email_count = 0
+    
+    for email in guessEmails: 
+        exists = check_email_exists(email)
+        
+        if exists:
+            email_lists[valid_email_count % 2].append(email)
+            valid_email_count += 1
+        else:
+            email_lists[valid_email_count % 2].append('')
+    
+    # Fill in empty strings for missing email entries
+    while len(email_company_1) < len(email_company_2):
+        email_company_1.append('')
+    
+    while len(email_company_2) < len(email_company_1):
+        email_company_2.append('')
+    
+    domain = clean_domain
+    no1, no2, c_code1, c_code2 = process_numbers(domain)
+    country_company.append(j)
+    website_company.append(clean_domain)
+    phone_no1.append(no1)
+    phone_no2.append(no2)
+    country_code1.append(c_code1)
+    country_code2.append(c_code2)
+    
+    print('Any things')
