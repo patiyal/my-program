@@ -1,0 +1,54 @@
+import asyncio
+import cv2
+import os
+import pyppeteer
+
+
+# Function to convert screenshots to video
+def screenshots_to_video(screenshot_files, output_video):
+    # Read the first screenshot to get dimensions
+    frame = cv2.imread(screenshot_files[0])
+    height, width, _ = frame.shape
+
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    out = cv2.VideoWriter(output_video, fourcc, 16, (width, height))
+
+    # Write frames to video
+    for screenshot in screenshot_files:
+        frame = cv2.imread(screenshot)
+        out.write(frame)
+
+    # Release VideoWriter
+    out.release()
+
+    
+    for screenshot in screenshot_files:        #delete all secreen shot in the memory
+        os.remove(screenshot)
+        
+
+async def capture_screenshot(page, filename):    #save screenshot in memory
+    await page.screenshot({'path': filename})
+    
+async def main():
+    browser = await pyppeteer.launch()
+    page = await browser.newPage()
+
+    await page.setViewport({'width': 1920, 'height': 720}) 
+
+    await page.goto('https://medium.com/') 
+
+    screenshot_files = []
+    total_frames = 320     #number of screenshot for text to video
+    for _ in range(total_frames):
+        filename = f"screenshot_{len(screenshot_files):03d}.png"
+        await capture_screenshot(page, filename)
+        screenshot_files.append(filename)
+#         await asyncio.sleep(1 / 16)  # Capture 16 frames per second
+
+    output_video = 'website_capture.mp4'
+    screenshots_to_video(screenshot_files, output_video)
+
+    await browser.close()
+
+await main()
