@@ -1,0 +1,35 @@
+# replace link and take any website link
+import asyncio
+import nest_asyncio
+from pyppeteer import launch
+import random
+import time
+import datetime
+
+nest_asyncio.apply()
+
+async def take_screenshot(url, output_file): #funtion take screenshot
+    browser = await launch()                 #Loed chrome browser
+    page = await browser.newPage()           #Add Page in browser
+
+    try:                                     #Browser open link and save screenshot
+        await page.goto(url)
+        await page.screenshot({'path': output_file})
+        print(f"Name of screenshot {output_file}")
+    finally:
+        await browser.close()                 #close the browser
+
+def caculate_time():                          #funtion return current time
+    current_time = datetime.datetime.now().time()
+    return current_time.strftime('%H:%M:%S')
+start_time = caculate_time()
+print(start_time)
+website_url = "https://www.netflix.com/tudum/top10"
+for i in range(8):                                 #this loop run 8 time and puase 1min each loop, save screen shot
+    output_file = f"{random.randint(100000, 999999)}.png"    #this is random file name
+    asyncio.get_event_loop().run_until_complete(take_screenshot(website_url, output_file))
+    if i == 7:
+        break
+    time.sleep(60)
+end_time = caculate_time()
+print(end_time)
