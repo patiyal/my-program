@@ -1,0 +1,85 @@
+# this code scrape netflix weakly data and save in json if scrape data is change
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import datetime
+
+data = requests.get("https://www.netflix.com/tudum/top10/")
+soup = BeautifulSoup(data.content, "html.parser")
+table_data = soup.find('table')
+tr_data = table_data.find_all('tr')
+sr_no = []
+film_name = []
+weaks_in_top_10 = []
+hours_views = []
+runtimes = []
+views = []
+for i in range(len(tr_data)):
+    if i == 0:
+        th_data = tr_data[0].find_all("th")
+        sr_no.append(th_data[0].text)
+        film_name.append(th_data[1].text)
+        weaks_in_top_10.append(th_data[2].text)
+        hours_views.append(th_data[3].text)
+        runtimes.append(th_data[4].text)
+        views.append(th_data[5].text)
+    else:
+        td_data = tr_data[i].find_all("td")
+        sr_no.append(td_data[0].text)
+        film_name.append(td_data[1].text)
+        weaks_in_top_10.append(td_data[2].text)
+        hours_views.append(td_data[3].text)
+        runtimes.append(td_data[4].text)
+        views.append(td_data[5].text)
+try:
+    with open("netflix_data.json", "r") as file:
+        netflix_data = json.load(file)
+except FileNotFoundError:
+    netflix_data = []
+datemonth = datetime.date.today()
+ld = datemonth.strftime("%Y-%m-%d")
+for sn, fn, wt, hv, rt, vs in zip(sr_no, film_name, weaks_in_top_10, hours_views, runtimes, views):
+    netflix_data.append({
+        "Sr No" : sn,
+        "Films (English)" : fn,
+        "WEEKS IN TOP 10" : wt,
+        "HOURS VIEWED" : hv,
+        "RUNTIME" : rt,
+        "Views" : vs,
+        "Last Date" : ld 
+    })
+with open('netflix_data.json', 'w') as file:
+    json.dump(netflix_data, file)
+df = pd.DataFrame(netflix_data)
+last_date = netflix_data[-1].get('Last Date')
+Current_date = datetime.datetime.today().date()
+ldate = datetime.datetime.strptime(last_date, "%Y-%m-%d").date()
+day_s = Current_date - ldate
+day_s.days
+day_s = 7
+if day_s >=7:
+    print(2)
+def calculate_days(last_date):
+    Current_date = datetime.datetime.today().date()
+    ldate = datetime.datetime.strptime(last_date, "%Y-%m-%d").date()
+    day_s = Current_date - ldate
+    return day_s.days
+calculate_days(last_date)
+if netflix_data:
+    last_date = netflix_data[-1].get('Last Date')
+    day_s = calculate_days(last_date)
+else:
+    day_s = 7
+netflix_panda = []
+for sn, fn, wt, hv, rt, vs in zip(sr_no, film_name, weaks_in_top_10, hours_views, runtimes, views):
+    netflix_panda.append({
+        "Sr No" : sn,
+        "Films (English)" : fn,
+        "WEEKS IN TOP 10" : wt,
+        "HOURS VIEWED" : hv,
+        "RUNTIME" : rt,
+        "Views" : vs,
+        "Last Date" : ld 
+    })
+df = pd.DataFrame(netflix_panda)
+df
